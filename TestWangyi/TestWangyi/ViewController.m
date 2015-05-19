@@ -23,6 +23,9 @@
 @implementation ViewController {
   UIScrollView* m_scrollView;
   UIScrollView* m_topScrollView;
+  UIImageView* m_tipImageView;
+  int m_page;
+  NSMutableArray* m_buttonArray;
 }
 
 - (void)viewDidLoad {
@@ -53,9 +56,11 @@
   [array addObject:@"房产"];
   [array addObject:@"游戏"];
 
+  m_buttonArray = [[NSMutableArray alloc] initWithCapacity:2];
+
   for (int i = 0; i < 8; i++) {
     UIButton* button =
-        [[UIButton alloc] initWithFrame:CGRectMake(60 * i + i * 5, 0, 60, 44)];
+        [[UIButton alloc] initWithFrame:CGRectMake(60 * i, 0, 60, 44)];
     //[button setText:[array objectAtIndex:i]];
     [button setTitle:[array objectAtIndex:i] forState:UIControlStateNormal];
     [button setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
@@ -66,9 +71,21 @@
         forControlEvents:UIControlEventTouchDown];
 
     [m_topScrollView addSubview:button];
+
+    [m_buttonArray addObject:button];
   }
 
-  m_topScrollView.contentSize = CGSizeMake(60 * 8 + 5 * 8, 44);
+  UIImage* image = [UIImage imageNamed:@"block"];
+
+  m_tipImageView = [[UIImageView alloc]
+      initWithFrame:CGRectMake(0, 44 - image.size.height, image.size.width,
+                               image.size.height)];
+
+  m_tipImageView.image = image;
+
+  [m_topScrollView addSubview:m_tipImageView];
+
+  m_topScrollView.contentSize = CGSizeMake(60 * 8, 44);
 
   m_scrollView = [[UIScrollView alloc]
       initWithFrame:CGRectMake(0, 44, self.view.bounds.size.width,
@@ -173,8 +190,59 @@
   // Dispose of any resources that can be recreated.
 }
 
+- (void)scrollViewWillEndDragging:(UIScrollView*)scrollView
+                     withVelocity:(CGPoint)velocity
+              targetContentOffset:(inout CGPoint*)targetContentOffset {
+  int page = (int)targetContentOffset->x / (int)self.view.bounds.size.width;
+
+  int offset = page - m_page;
+
+  m_page = page;
+
+  [UIView animateWithDuration:0.5
+      animations:^{
+        m_tipImageView.center = CGPointMake(
+            m_tipImageView.center.x + offset * 60, m_tipImageView.center.y);
+
+      }
+      completion:^(BOOL finished) {
+
+        CGPoint point = CGPointMake(60 * m_page, 0);
+
+        int x = (int)m_topScrollView.contentSize.width -
+                (int)self.view.bounds.size.width;
+
+        if (point.x < x) {
+          [m_topScrollView setContentOffset:point animated:YES];
+        } else {
+          CGPoint point = CGPointMake(x, 0);
+          [m_topScrollView setContentOffset:point animated:YES];
+        }
+
+        UIButton* button = [m_buttonArray objectAtIndex:page];
+        if (button != nil) {
+          [button setTitleColor:[UIColor redColor]
+                       forState:UIControlStateNormal];
+        }
+
+        if (offset > 0) {
+          UIButton* button = [m_buttonArray objectAtIndex:page - 1];
+          if (button != nil) {
+            [button setTitleColor:[UIColor blackColor]
+                         forState:UIControlStateNormal];
+          }
+        } else if (offset < 0) {
+          UIButton* button = [m_buttonArray objectAtIndex:page + 1];
+          if (button != nil) {
+            [button setTitleColor:[UIColor blackColor]
+                         forState:UIControlStateNormal];
+          }
+        }
+
+      }];
+}
+
 - (void)scrollViewDidScroll:(UIScrollView*)scrollView {
-  NSLog(@"%d", (int)scrollView.bounds.origin.x);
 }
 
 @end
